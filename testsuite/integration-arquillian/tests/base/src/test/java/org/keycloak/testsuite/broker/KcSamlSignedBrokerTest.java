@@ -262,4 +262,9 @@ public class KcSamlSignedBrokerTest extends KcSamlBrokerTest {
     public void loginUserAllNamespacesInTopElementEncryptedAssertion() throws Exception {
         withSignedEncryptedAssertions(this::loginUserAllNamespacesInTopElement, false, true);
     }
+
+    @Test
+    public void newPrTest() throws Exception {
+        Assert.assertTrue(true);
+    }
 }
