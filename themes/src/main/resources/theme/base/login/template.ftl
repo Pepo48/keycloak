@@ -34,6 +34,10 @@
             <script src="${script}" type="text/javascript"></script>
         </#list>
     </#if>
+
+    <link rel="stylesheet" type="text/css" href="${url.resourcesCommonPath}/css/base.css"/>
+    <link rel="stylesheet" type="text/css" href="${url.resourcesCommonPath}/css/app.css"/>
+    <link href="${url.resourcesCommonPath}/css/layout.css" rel="stylesheet"/>
 </head>
 
 <body class="${properties.kcBodyClass!}">
