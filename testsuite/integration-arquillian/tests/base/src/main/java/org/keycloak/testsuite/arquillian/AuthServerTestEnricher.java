@@ -597,7 +597,7 @@ public class AuthServerTestEnricher {
         if (wildflyConfigXmlPath == null) {
             log.debug("Scanning classpath to locate wildfly-config.xml...");
             final String javaClassPath = System.getProperty("java.class.path");
-            for (String dir : javaClassPath.split(":")) {
+            for (String dir : javaClassPath.split(File.pathSeparator)) {
                 if (!dir.isEmpty()) {
                     String candidatePath = dir + File.separator +
                         "wildfly-config.xml";
