@@ -32,6 +32,7 @@
 
     <properties>
         <wildfly-common.version>1.5.4.Final-format-001</wildfly-common.version>
+        <smallrye.config.version>3.2.1</smallrye.config.version>
 
         <!--
             We need to override certain dependencies from the parent POM.
@@ -71,6 +72,13 @@
                 <groupId>org.infinispan</groupId>
                 <artifactId>infinispan-client-hotrod-jakarta</artifactId>
                 <version>${infinispan.version}</version>
+            </dependency>
+
+            <!-- SmallRye Keystore dependency necessary for Jasypt secret key handler -->
+            <dependency>
+                <groupId>io.smallrye.config</groupId>
+                <artifactId>smallrye-config-jasypt</artifactId>
+                <version>${smallrye.config.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

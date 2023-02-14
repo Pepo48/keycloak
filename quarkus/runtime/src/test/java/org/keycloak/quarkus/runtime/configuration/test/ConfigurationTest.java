@@ -31,7 +31,11 @@ import java.util.Properties;
 import org.hibernate.dialect.H2Dialect;
 import org.hibernate.dialect.PostgreSQLDialect;
 import io.quarkus.runtime.LaunchMode;
+import io.smallrye.config.ConfigValue;
+import io.smallrye.config.PropertiesConfigSource;
 import io.smallrye.config.SmallRyeConfig;
+import io.smallrye.config.SmallRyeConfigBuilder;
+import io.smallrye.config.SmallRyeConfigProviderResolver;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.eclipse.microprofile.config.spi.ConfigProviderResolver;
 import org.hibernate.dialect.MariaDBDialect;
@@ -44,7 +48,6 @@ import org.keycloak.quarkus.runtime.configuration.KeycloakConfigSourceProvider;
 import org.keycloak.quarkus.runtime.configuration.MicroProfileConfigProvider;
 
 import io.quarkus.runtime.configuration.ConfigUtils;
-import io.smallrye.config.SmallRyeConfigProviderResolver;
 import org.keycloak.quarkus.runtime.Environment;
 import org.keycloak.quarkus.runtime.vault.FilesPlainTextVaultProviderFactory;
 import org.mariadb.jdbc.MariaDbDataSource;
@@ -186,7 +189,7 @@ public class ConfigurationTest {
         System.setProperty(CLI_ARGS, "--spi-hostname-default-frontend-url=http://fromargs.unittest" + ARG_SEPARATOR + "--no-ssl");
         assertEquals("http://fromargs.unittest", initConfig("hostname", "default").get("frontendUrl"));
     }
-    
+
     @Test
     public void testSpiConfigurationUsingCommandLineArguments() {
         System.setProperty(CLI_ARGS, "--spi-hostname-default-frontend-url=http://spifull.unittest");
@@ -527,6 +530,55 @@ public class ConfigurationTest {
 
         Environment.setProfile("prod");
         assertEquals("true", createConfig().getConfigValue("kc.hostname-strict").getValue());
+    }
+
+    @Test
+    public void testKeystoreConfigSource() {
+        // Add properties manually
+        Map<String, String> properties = new HashMap<>();
+        properties.put("smallrye.config.source.keystore.test.path", "keystore");
+        properties.put("smallrye.config.source.keystore.test.password", "secret");
+
+        SmallRyeConfig config = new SmallRyeConfigBuilder()
+                .addDefaultInterceptors()
+                .addDiscoveredSources()
+                .withSources(new PropertiesConfigSource(properties, "", 0))
+                .build();
+
+        ConfigValue secret = config.getConfigValue("my.secret");
+        assertEquals("secret", secret.getValue());
+    }
+    @Test
+    public void testKeystorePropertyMapping() {
+        SmallRyeConfig config = new SmallRyeConfigBuilder()
+                .addDefaultInterceptors()
+                .addDiscoveredSources()
+                .build();
+
+        assertEquals(config.getConfigValue("smallrye.config.source.keystore.test.password").getValue(),config.getConfigValue("kc.config-keystore-password").getValue());
+        // Properties are loaded from the file - secret can be obtained only if the mapping works correctly
+        ConfigValue secret = config.getConfigValue("my.secret");
+        assertEquals("secret", secret.getValue());
+    }
+
+    @Test
+    public void testJasyptSecret() {
+        Map<String, String> properties = Map.of(
+                "smallrye.config.secret-handler.jasypt.password", "jasypt",
+                "smallrye.config.secret-handler.jasypt.algorithm", "PBEWithHMACSHA512AndAES_256",
+                "my.secret.manual", "${jasypt::ENC(wqp8zDeiCQ5JaFvwDtoAcr2WMLdlD0rjwvo8Rh0thG5qyTQVGxwJjBIiW26y0dtU)}");
+
+        SmallRyeConfig config = new SmallRyeConfigBuilder()
+                .addDefaultInterceptors()
+                .addDiscoveredSources()
+                .addDiscoveredSecretKeysHandlers()
+                .withSources(new PropertiesConfigSource(properties, "", 0))
+                .build();
+
+        // Added manually
+        assertEquals("12345678", config.getRawValue("my.secret.manual"));
+        // Loaded from the file
+        assertEquals("12345678", config.getRawValue("kc.db-password"));
     }
 
     private Config.Scope initConfig(String... scope) {
