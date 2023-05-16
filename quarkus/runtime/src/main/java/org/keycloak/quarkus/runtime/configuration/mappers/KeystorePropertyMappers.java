@@ -11,13 +11,17 @@ final class KeystorePropertyMappers {
 
     public static PropertyMapper[] getKeystorePropertyMappers() {
         return new PropertyMapper[] {
-                fromOption(ConfigKeystoreOptions.KEYSTORE_PATH)
-                        .to("smallrye.config.source.keystore.test.path")
+                fromOption(ConfigKeystoreOptions.CONFIG_KEYSTORE)
+                        .to("smallrye.config.source.keystore.kc-default.path")
                         .paramLabel("config-keystore")
                         .build(),
-                fromOption(ConfigKeystoreOptions.KEYSTORE_PASSWORD)
-                        .to("smallrye.config.source.keystore.test.password")
+                fromOption(ConfigKeystoreOptions.CONFIG_KEYSTORE_PASSWORD)
+                        .to("smallrye.config.source.keystore.kc-default.password")
                         .paramLabel("config-keystore-password")
+                        .build(),
+                fromOption(ConfigKeystoreOptions.CONFIG_KEYSTORE_TYPE)
+                        .to("smallrye.config.source.keystore.kc-default.type")
+                        .paramLabel("config-keystore-type")
                         .build()
         };
     }

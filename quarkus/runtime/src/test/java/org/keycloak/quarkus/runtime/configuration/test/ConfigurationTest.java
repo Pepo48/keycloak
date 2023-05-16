@@ -536,8 +536,8 @@ public class ConfigurationTest {
     public void testKeystoreConfigSource() {
         // Add properties manually
         Map<String, String> properties = new HashMap<>();
-        properties.put("smallrye.config.source.keystore.test.path", "keystore");
-        properties.put("smallrye.config.source.keystore.test.password", "secret");
+        properties.put("smallrye.config.source.keystore.kc-default.path", "keystore");
+        properties.put("smallrye.config.source.keystore.kc-default.password", "secret");
 
         SmallRyeConfig config = new SmallRyeConfigBuilder()
                 .addDefaultInterceptors()
@@ -555,7 +555,7 @@ public class ConfigurationTest {
                 .addDiscoveredSources()
                 .build();
 
-        assertEquals(config.getConfigValue("smallrye.config.source.keystore.test.password").getValue(),config.getConfigValue("kc.config-keystore-password").getValue());
+        assertEquals(config.getConfigValue("smallrye.config.source.keystore.kc-default.password").getValue(),config.getConfigValue("kc.config-keystore-password").getValue());
         // Properties are loaded from the file - secret can be obtained only if the mapping works correctly
         ConfigValue secret = config.getConfigValue("my.secret");
         assertEquals("secret", secret.getValue());
