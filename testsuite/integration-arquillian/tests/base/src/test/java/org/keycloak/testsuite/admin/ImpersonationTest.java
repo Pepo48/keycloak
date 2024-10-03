@@ -63,8 +63,12 @@ import org.openqa.selenium.Cookie;
 import jakarta.ws.rs.ClientErrorException;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.Response;
+
+import javax.net.ssl.SSLContext;
 import java.io.IOException;
 import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -385,6 +389,18 @@ public class ImpersonationTest extends AbstractKeycloakTest {
     Keycloak createAdminClient(String realm, String clientId, String username, String password, ResteasyClient resteasyClient) {
         if (password == null) {
             password = username.equals("admin") ? "admin" : "password";
+        }
+
+        if (resteasyClient == null) {
+            try {
+                SSLContext tlsContext = SSLContext.getInstance("TLS");
+                tlsContext.init(null, null, null);
+                resteasyClient = (ResteasyClient) ResteasyClientBuilder.newBuilder()
+                        .sslContext(tlsContext)
+                        .build();
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                throw new RuntimeException("Failed to initialize SSLContext", e);
+            }
         }
 
         return KeycloakBuilder.builder().serverUrl(getAuthServerContextRoot() + "/auth")

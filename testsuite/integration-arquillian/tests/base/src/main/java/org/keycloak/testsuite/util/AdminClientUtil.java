@@ -118,13 +118,6 @@ public class AdminClientUtil {
     public static ResteasyClient createResteasyClient(boolean ignoreUnknownProperties, Boolean followRedirects) throws CertificateException, NoSuchAlgorithmException, KeyStoreException, IOException, KeyManagementException {
         ResteasyClientBuilder resteasyClientBuilder = (ResteasyClientBuilder) ResteasyClientBuilder.newBuilder();
 
-        if ("true".equals(System.getProperty("auth.server.ssl.required"))) {
-            File truststore = new File(PROJECT_BUILD_DIRECTORY, "dependency/keystore/keycloak.truststore");
-            resteasyClientBuilder.sslContext(getSSLContextWithTruststore(truststore, "secret"));
-
-            System.setProperty("javax.net.ssl.trustStore", truststore.getAbsolutePath());
-        }
-
         // We need to ignore unknown JSON properties e.g. in the adapter configuration representation
         // during adapter backward compatibility testing
         if (ignoreUnknownProperties) {
@@ -157,6 +150,17 @@ public class AdminClientUtil {
     }
 
     public static ClientHttpEngine getCustomClientHttpEngine(ResteasyClientBuilder resteasyClientBuilder, int validateAfterInactivity, Boolean followRedirects) {
+        if ("true".equals(System.getProperty("auth.server.ssl.required"))) {
+            File truststore = new File(PROJECT_BUILD_DIRECTORY, "dependency/keystore/keycloak.truststore");
+            try {
+                resteasyClientBuilder.sslContext(getSSLContextWithTruststore(truststore, "secret"));
+            } catch (CertificateException | NoSuchAlgorithmException | KeyStoreException | IOException |
+                     KeyManagementException e) {
+                throw new RuntimeException(e);
+            }
+
+            System.setProperty("javax.net.ssl.trustStore", truststore.getAbsolutePath());
+        }
         return new CustomClientHttpEngineBuilder43(validateAfterInactivity, followRedirects).resteasyClientBuilder(resteasyClientBuilder).build();
     }
 
