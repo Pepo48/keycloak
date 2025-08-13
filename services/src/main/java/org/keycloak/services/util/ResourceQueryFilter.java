@@ -94,13 +94,32 @@ public class ResourceQueryFilter<T> {
                     if (actualValue == null) return false; // field not set, can't match
                 }
 
-                // TODO fix this code, it's a mess
                 if (actualValue instanceof List || actualValue instanceof Set) {
                     if (!(expectedValue instanceof List)) return false;
                     List<String> expectedList = (List<String>) expectedValue;
-
-                    // we're doing unnecessary loops here, we should optimize this
-                    return ((Collection<?>) actualValue).stream().map(Object::toString).collect(Collectors.toSet()).containsAll(expectedList);
+                    Collection<?> actualCollection = (Collection<?>) actualValue;
+                    // convert expectedList to a Set for fast lookup
+                    Set<String> expectedSet = expectedList.size() > 1 ? new java.util.HashSet<>(expectedList) : null;
+                    int found = 0;
+                    for (Object item : actualCollection) {
+                        String itemStr = item == null ? null : item.toString();
+                        if (expectedSet != null) {
+                            if (expectedSet.contains(itemStr)) {
+                                found++;
+                                if (found == expectedSet.size()) break;
+                            }
+                        } else {
+                            if (itemStr != null && itemStr.equals(expectedList.get(0))) {
+                                found++;
+                                break;
+                            }
+                        }
+                    }
+                    if (expectedSet != null) {
+                        return found == expectedSet.size();
+                    } else {
+                        return found == 1;
+                    }
                 } else if (actualValue instanceof Map) { // check for exact match if expectedValue is a map
                     // considering the key is a String
                     Map<String, ?> actualMap;
