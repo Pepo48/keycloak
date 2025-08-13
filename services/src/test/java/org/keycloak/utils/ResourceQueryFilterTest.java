@@ -64,6 +64,60 @@ public class ResourceQueryFilterTest {
         assertFilteredRepresentations(representations, "innerVal.innerStrVal:inner1", rep1);
     }
 
+    @Test
+    public void testGetterCacheEfficiency() {
+    // Reset counters
+    GetterCounterTestClass.getterInvocationCount = 0;
+    ResourceQueryFilter.reflectionLookupCount = 0;
+    GetterCounterTestClass obj = new GetterCounterTestClass("value");
+    List<GetterCounterTestClass> list = List.of(obj);
+
+    // First filter: should increment both counters
+    ResourceQueryFilter<GetterCounterTestClass> filter1 = new ResourceQueryFilter<>("testField:value");
+    List<GetterCounterTestClass> result1 = filter1.filterByQuery(list.stream()).toList();
+    assertEquals(1, GetterCounterTestClass.getterInvocationCount);
+    assertEquals(1, ResourceQueryFilter.reflectionLookupCount);
+
+    // Second filter: should use cache, not increment reflection counter
+    ResourceQueryFilter<GetterCounterTestClass> filter2 = new ResourceQueryFilter<>("testField:value");
+    List<GetterCounterTestClass> result2 = filter2.filterByQuery(list.stream()).toList();
+    assertEquals(2, GetterCounterTestClass.getterInvocationCount);
+    assertEquals(1, ResourceQueryFilter.reflectionLookupCount);
+
+    // Third filter: different field, should increment both counters
+    ResourceQueryFilter<GetterCounterTestClass> filter3 = new ResourceQueryFilter<>("anotherField:value");
+    List<GetterCounterTestClass> result3 = filter3.filterByQuery(list.stream()).toList();
+    assertEquals(3, GetterCounterTestClass.getterInvocationCount);
+    assertEquals(2, ResourceQueryFilter.reflectionLookupCount);
+
+    // Fourth filter: same field as before, should use cache
+    ResourceQueryFilter<GetterCounterTestClass> filter4 = new ResourceQueryFilter<>("testField:value");
+    List<GetterCounterTestClass> result4 = filter4.filterByQuery(list.stream()).toList();
+    assertEquals(4, GetterCounterTestClass.getterInvocationCount);
+    assertEquals(2, ResourceQueryFilter.reflectionLookupCount);
+    }
+
+    public static class GetterCounterTestClass {
+        public static int getterInvocationCount = 0;
+        private String testField;
+        private String anotherField;
+
+        public GetterCounterTestClass(String value) {
+            this.testField = value;
+            this.anotherField = value;
+        }
+
+        public String getTestField() {
+            getterInvocationCount++;
+            return testField;
+        }
+
+        public String getAnotherField() {
+            getterInvocationCount++;
+            return anotherField;
+        }
+    }
+
     private void assertInvalidQuery(String message, String query) {
         assertThrows(message, IllegalArgumentException.class, () -> parseQuery(query));
     }

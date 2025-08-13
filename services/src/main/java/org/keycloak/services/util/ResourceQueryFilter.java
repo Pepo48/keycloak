@@ -25,6 +25,9 @@ import java.util.stream.Stream;
  * @author Vaclav Muzikar <vmuzikar@redhat.com>
  */
 public class ResourceQueryFilter<T> {
+    private static final Map<Class<?>, Map<String, Method>> getterCache = new HashMap<>();
+    // Counter for reflection lookups (cache misses)
+    public static int reflectionLookupCount = 0;
     public static final Pattern singleFieldPattern = Pattern.compile("([a-zA-Z0-9]+(?:\\.[a-zA-Z0-9]+)*):(?:([\\S&&[^\\[\"\\]:]]+)|\"([^\"]+)\"|\\[([^\\]]+)])");
     public static final Pattern fullQueryPattern = Pattern.compile(String.format("^%s(\\s+%s)*$", singleFieldPattern, singleFieldPattern));
     public static final Pattern listPattern = Pattern.compile("^[\\S&&[^,:]]+(,\\s*[\\S&&[^,:]]+)*$");
@@ -138,15 +141,24 @@ public class ResourceQueryFilter<T> {
     }
 
     private Method findGetter(Class<?> clazz, String key) throws NoSuchMethodException {
-        String adjustedKey = Character.toUpperCase(key.charAt(0)) + key.substring(1);
-
-        // this is not optimal
-        // TODO at least cache the getters
-        try {
-            return clazz.getMethod("get" + adjustedKey);
-        } catch (NoSuchMethodException e) {
-            return clazz.getMethod("is" + adjustedKey);
+        // check cache for this class
+        Map<String, Method> classCache = getterCache.computeIfAbsent(clazz, k -> new HashMap<>());
+        Method cached = classCache.get(key);
+        if (cached != null) {
+            return cached;
         }
+
+        // Cache miss: perform reflection lookup and increment counter
+        reflectionLookupCount++;
+        String adjustedKey = Character.toUpperCase(key.charAt(0)) + key.substring(1);
+        Method method;
+        try {
+            method = clazz.getMethod("get" + adjustedKey);
+        } catch (NoSuchMethodException e) {
+            method = clazz.getMethod("is" + adjustedKey);
+        }
+        classCache.put(key, method);
+        return method;
     }
 
     public Map<String, Object> getParsedQuery() {
