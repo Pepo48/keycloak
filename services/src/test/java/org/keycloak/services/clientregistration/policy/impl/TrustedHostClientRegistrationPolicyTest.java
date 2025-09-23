@@ -31,6 +31,9 @@ import org.keycloak.services.clientregistration.policy.ClientRegistrationPolicyE
 import org.keycloak.services.resteasy.ResteasyKeycloakSession;
 import org.keycloak.services.resteasy.ResteasyKeycloakSessionFactory;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
+
 /**
  *
  * @author rmartinc
@@ -67,16 +70,14 @@ public class TrustedHostClientRegistrationPolicyTest {
         ComponentModel model = createComponentModel("*.localhost");
         TrustedHostClientRegistrationPolicy policy = (TrustedHostClientRegistrationPolicy) factory.create(session, model);
 
+        String localhostIp;
         try {
-            String canonical = java.net.InetAddress.getByName("127.0.0.1").getCanonicalHostName();
-            if (canonical.endsWith(".localhost") || canonical.equals("localhost")) {
-                assertTrue(policy.verifyHost("127.0.0.1"));
-            } else {
-                System.out.println("[TrustedHostClientRegistrationPolicyTest] Skipping verifyHost(127.0.0.1) assertion: canonical hostname is '" + canonical + "'");
-            }
-        } catch (Exception e) {
-            System.out.println("[TrustedHostClientRegistrationPolicyTest] Skipping verifyHost(127.0.0.1) assertion due to exception: " + e);
+            localhostIp = InetAddress.getByName("localhost").getHostAddress();
+        } catch (UnknownHostException e) {
+            Assert.fail("Could not resolve 'localhost': " + e);
+            return;
         }
+        assertTrue(policy.verifyHost(localhostIp));
         assertFalse(policy.verifyHost("10.0.0.1"));
         policy.checkURLTrusted("https://localhost", policy.getTrustedHosts(), policy.getTrustedDomains());
         policy.checkURLTrusted("https://other.localhost", policy.getTrustedHosts(), policy.getTrustedDomains());
