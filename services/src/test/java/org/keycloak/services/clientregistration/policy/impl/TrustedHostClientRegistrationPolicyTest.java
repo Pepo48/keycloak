@@ -77,7 +77,32 @@ public class TrustedHostClientRegistrationPolicyTest {
             Assert.fail("Could not resolve 'localhost': " + e);
             return;
         }
-        assertTrue(policy.verifyHost(localhostIp));
+        System.out.println("[TrustedHostClientRegistrationPolicyTest] Trusted hosts: " + policy.getTrustedHosts());
+        System.out.println("[TrustedHostClientRegistrationPolicyTest] Trusted domains: " + policy.getTrustedDomains());
+        System.out.println("[TrustedHostClientRegistrationPolicyTest] localhostIp: " + localhostIp);
+        
+        // Debug DNS resolution behavior
+        try {
+            InetAddress localhostAddr = InetAddress.getByName("localhost");
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] localhost hostname: " + localhostAddr.getHostName());
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] localhost canonical hostname: " + localhostAddr.getCanonicalHostName());
+            
+            InetAddress otherLocalhostAddr = InetAddress.getByName("other.localhost");
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] other.localhost hostname: " + otherLocalhostAddr.getHostName());
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] other.localhost canonical hostname: " + otherLocalhostAddr.getCanonicalHostName());
+            
+            InetAddress ipAddr = InetAddress.getByName(localhostIp);
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] " + localhostIp + " hostname: " + ipAddr.getHostName());
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] " + localhostIp + " canonical hostname: " + ipAddr.getCanonicalHostName());
+        } catch (Exception e) {
+            System.out.println("[TrustedHostClientRegistrationPolicyTest] DNS debug error: " + e);
+        }
+        
+        System.out.println("[TrustedHostClientRegistrationPolicyTest] verifyHost('localhost'): " + policy.verifyHost("localhost"));
+        System.out.println("[TrustedHostClientRegistrationPolicyTest] verifyHost('other.localhost'): " + policy.verifyHost("other.localhost"));
+        System.out.println("[TrustedHostClientRegistrationPolicyTest] verifyHost(localhostIp): " + policy.verifyHost(localhostIp));
+        assertTrue(policy.verifyHost("localhost"));
+        assertTrue(policy.verifyHost("other.localhost"));
         assertFalse(policy.verifyHost("10.0.0.1"));
         policy.checkURLTrusted("https://localhost", policy.getTrustedHosts(), policy.getTrustedDomains());
         policy.checkURLTrusted("https://other.localhost", policy.getTrustedHosts(), policy.getTrustedDomains());
