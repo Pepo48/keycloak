@@ -119,7 +119,20 @@ public final class Help extends CommandLine.Help {
         if (StringUtil.isBlank(text)) {
             return super.createHeading(text, params);
         }
-        return super.createHeading("%n@|bold " + text + "|@%n%n", params);
+
+        // Strip trailing whitespace (e.g., Picocli's "Usage: ") since our format adds newlines after
+        String trimmedText = text.stripTrailing();
+        return super.createHeading("%n@|bold " + trimmedText + "|@%n%n", params);
+    }
+
+    @Override
+    public String toString() {
+        String rendered = super.toString();
+
+        // Strip whitespace right before line breaks that Picocli may leave
+        rendered = rendered.replaceAll("[ \\t]+(?=\\R)", "");
+
+        return rendered.stripTrailing();
     }
 
     @Override
