@@ -191,6 +191,7 @@
 
         <!-- Maven Plugins -->
         <maven.plugins.version>3.13.1</maven.plugins.version>
+        <version.assembly.plugin>3.8.0</version.assembly.plugin>
         <replacer.plugin.version>1.4.1</replacer.plugin.version>
         <jboss.as.plugin.version>7.5.Final</jboss.as.plugin.version>
         <jmeter.plugin.version>1.9.0</jmeter.plugin.version>
@@ -1352,6 +1353,7 @@
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
+                    <version>${version.assembly.plugin}</version>
                     <configuration>
                         <tarLongFileMode>posix</tarLongFileMode>
                     </configuration>
