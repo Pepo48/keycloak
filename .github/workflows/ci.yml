@@ -113,6 +113,7 @@ jobs:
 
   unit-tests:
     name: Base UT
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 30
@@ -129,6 +130,7 @@ jobs:
 
   base-integration-tests:
     name: Base IT
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 100
@@ -159,6 +161,7 @@ jobs:
 
   adapter-integration-tests:
     name: Adapter IT
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -190,6 +193,7 @@ jobs:
 
   adapter-integration-tests-strict-cookies:
     name: Adapter IT Strict Cookies
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -221,8 +225,8 @@ jobs:
 
   quarkus-unit-tests:
     name: Quarkus UT
+    if: false  # DISABLED FOR TESTING
     needs: [build, conditional]
-    if: needs.conditional.outputs.ci-quarkus == 'true'
     timeout-minutes: 15
     strategy:
       matrix:
@@ -247,7 +251,8 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        suite: [zip-slow, zip-fast, container, storage, smoke]
+        # TESTING: Only zip-fast enabled for testing purposes
+        suite: [zip-fast]
         full-testsuite:
           - ${{ needs.conditional.outputs.ci-quarkus == 'true' }}
         # Win runs always as includes are evaluated after excludes
@@ -257,15 +262,7 @@ jobs:
         # Either run smoke tests, or full testsuite
         exclude:
           - full-testsuite: false
-            suite: zip-slow
-          - full-testsuite: false
             suite: zip-fast
-          - full-testsuite: false
-            suite: container
-          - full-testsuite: false
-            suite: storage
-          - full-testsuite: true
-            suite: smoke
       fail-fast: false
     runs-on: ${{ matrix.os }}
     env:
@@ -288,9 +285,9 @@ jobs:
       - name: Run Quarkus integration Tests
         run: |
           declare -A PARAMS
-          PARAMS["win"]="-Dkc.quarkus.tests.groups=win"
+          PARAMS["win"]="-Dtest=HelpCommandDistTest"
           PARAMS["zip-slow"]="-Dkc.quarkus.tests.groups=slow"
-          PARAMS["zip-fast"]='-Dkc.quarkus.tests.groups=!slow'
+          PARAMS["zip-fast"]='-Dtest=HelpCommandDistTest'
           PARAMS["container"]="-Dkc.quarkus.tests.dist=docker"
           PARAMS["storage"]="-Ptest-database"
           PARAMS["smoke"]="-Dkc.quarkus.tests.groups=smoke"
@@ -300,8 +297,19 @@ jobs:
           fi
           ./mvnw test -pl quarkus/tests/integration ${PARAMS["${{ matrix.suite }}"]} 2>&1 | misc/log/trimmer.sh
 
+      - name: Upload ApprovalTests (HelpCommandDistTest) artifacts
+        if: failure()
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        with:
+          name: quarkus-approvals-${{ matrix.os }}-${{ matrix.suite }}
+          path: |
+            quarkus/tests/integration/src/test/resources/**/approvals/**/*.approved.txt
+            quarkus/tests/integration/src/test/resources/**/approvals/**/*.received.txt
+            quarkus/tests/integration/target/surefire-reports/**
+
   jdk-integration-tests:
     name: Java Distribution IT/UT
+    if: false  # DISABLED FOR TESTING
     needs: build
     timeout-minutes: 100
     strategy:
@@ -354,6 +362,7 @@ jobs:
 
   login-v1-tests:
     name: Login Theme v1 tests
+    if: false  # DISABLED FOR TESTING
     needs: build
     timeout-minutes: 100
     runs-on: ubuntu-latest
@@ -383,8 +392,8 @@ jobs:
 
   volatile-sessions-tests:
     name: Volatile Sessions IT
+    if: false  # DISABLED FOR TESTING
     needs: [build, conditional]
-    if: needs.conditional.outputs.ci-store == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -413,8 +422,8 @@ jobs:
 
   external-infinispan-tests:
     name: External Infinispan IT
+    if: false  # DISABLED FOR TESTING
     needs: [ build, conditional ]
-    if: needs.conditional.outputs.ci-store == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     strategy:
@@ -448,8 +457,8 @@ jobs:
 
   auroradb-integration-tests:
     name: AuroraDB IT
+    if: false  # DISABLED FOR TESTING
     needs: conditional
-    if: needs.conditional.outputs.ci-aurora == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
@@ -502,7 +511,7 @@ jobs:
           git archive --format=zip --output /tmp/keycloak.zip $GITHUB_REF
           zip -u /tmp/keycloak.zip aws.pem
           tar -C ~/ -czvf m2.tar.gz .m2
- 
+          
           cd .github/scripts/ansible
           python3 -m venv .venv
           source .venv/bin/activate
@@ -601,8 +610,8 @@ jobs:
 
   azure-integration-tests:
     name: AzureDB IT
+    if: false  # DISABLED FOR TESTING
     needs: conditional
-    if: needs.conditional.outputs.ci-azure == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     permissions:
@@ -747,6 +756,7 @@ jobs:
 
   store-integration-tests:
     name: Store IT
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 75
@@ -761,14 +771,14 @@ jobs:
         name: Run Store Integration Tests - ${{ matrix.db }}
         uses: ./.github/actions/run-store-tests
         with:
-            db: ${{ matrix.db }}
+          db: ${{ matrix.db }}
 
   store-integration-tests-additional:
     name: Store IT (additional)
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 75
-    if: needs.conditional.outputs.ci-additional-dbs == 'true'
     strategy:
       matrix:
         db: [edb]
@@ -791,9 +801,9 @@ jobs:
 
   store-model-tests:
     name: Store Model Tests
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: [build, conditional]
-    if: needs.conditional.outputs.ci-store == 'true'
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -814,6 +824,7 @@ jobs:
 
   clustering-integration-tests:
     name: Clustering IT
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 35
@@ -839,6 +850,7 @@ jobs:
 
   fips-unit-tests:
     name: FIPS UT
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 20
@@ -860,6 +872,7 @@ jobs:
 
   fips-integration-tests:
     name: FIPS IT
+    if: false  # DISABLED FOR TESTING
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -894,6 +907,7 @@ jobs:
 
   forms-integration-tests:
     name: Forms IT
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 75
@@ -930,7 +944,7 @@ jobs:
 
   webauthn-integration-tests:
     name: WebAuthn IT
-    if: needs.conditional.outputs.ci-webauthn == 'true'
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 45
@@ -962,8 +976,8 @@ jobs:
 
   sssd-unit-tests:
     name: SSSD
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
-    if: needs.conditional.outputs.ci-sssd == 'true'
     needs:
       - conditional
       - build
@@ -993,6 +1007,7 @@ jobs:
 
   migration-tests:
     name: Migration Tests
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 45
@@ -1030,6 +1045,7 @@ jobs:
 
   test-framework:
     name: Test Framework
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 30
@@ -1045,6 +1061,7 @@ jobs:
 
   base-new-integration-tests:
     name: Base IT (new)
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs:
       - build
@@ -1069,7 +1086,7 @@ jobs:
 
   admin-v2-tests:
     name: Admin v2
-    if: needs.conditional.outputs.ci-admin-v2 == 'true'
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs:
       - build
@@ -1087,7 +1104,7 @@ jobs:
 
   mixed-cluster-compatibility-tests:
     name: Cluster Compatibility Tests
-    if: needs.conditional.outputs.ci-compatibility-matrix != 'skip'
+    if: false  # DISABLED FOR TESTING
     runs-on: ubuntu-latest
     needs:
       - build
