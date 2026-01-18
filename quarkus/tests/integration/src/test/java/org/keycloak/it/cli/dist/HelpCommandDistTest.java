@@ -213,7 +213,10 @@ public class HelpCommandDistTest {
                 .replaceAll("\u001B\\[[;\\d]*m", "")
                 // normalize the output to prevent changes around the feature toggles or events to mark the output to differ
                 .replaceAll("((Disables|Enables) a set of one or more features. Possible values are: )[^.]{30,}", "$1<...>")
-                .replaceAll("(create a metric.\\s+Possible values are:)[^.]{30,}.[^.]*.", "$1<...>");
+                .replaceAll("(create a metric.\\s+Possible values are:)[^.]{30,}.[^.]*.", "$1<...>")
+                // strip trailing whitespace on each line that picocli may leave
+                .replaceAll("[ \\t]+(?=\\R)", "")
+                .stripTrailing();
 
         if (Environment.isWindows()) {
             output = output

@@ -126,16 +126,6 @@ public final class Help extends CommandLine.Help {
     }
 
     @Override
-    public String toString() {
-        String rendered = super.toString();
-
-        // Strip whitespace right before line breaks that Picocli may leave
-        rendered = rendered.replaceAll("[ \\t]+(?=\\R)", "");
-
-        return rendered.stripTrailing();
-    }
-
-    @Override
     public IParameterRenderer createDefaultParameterRenderer() {
         return new IParameterRenderer() {
             @Override
