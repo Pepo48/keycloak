@@ -17,6 +17,7 @@
 
 package org.keycloak.it.cli.dist;
 
+import java.nio.file.Paths;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -185,11 +186,12 @@ public class QuarkusPropertiesDistTest {
     }
 
     @Test
-    @Launch({ "start", "--http-enabled=true", "--hostname-strict=false",
-            "--config-keystore=../../../../src/test/resources/keystore", "--config-keystore-password=secret" })
     @Order(12)
-    void testSmallRyeKeyStoreConfigSource(CLIResult cliResult) {
+    void testSmallRyeKeyStoreConfigSource(KeycloakDistribution distribution) {
         // keytool -importpass -alias kc.log-level -keystore keystore -storepass secret -storetype PKCS12 -v (with "org.keycloak.timer:debug" as the stored password)
+        CLIResult cliResult = distribution.run("start", "--http-enabled=true", "--hostname-strict=false",
+                "--config-keystore=" + Paths.get("src/test/resources/keystore").toAbsolutePath().normalize(),
+                "--config-keystore-password=secret");
         cliResult.assertNoMessage("DEBUG [org.keycloak.services");
         cliResult.assertMessage("DEBUG [org.keycloak.timer");
         cliResult.assertStarted();

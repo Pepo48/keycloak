@@ -19,12 +19,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <parent>
-        <groupId>org.jboss</groupId>
-        <artifactId>jboss-parent</artifactId>
-        <version>39</version>
-    </parent>
-
     <name>Keycloak</name>
     <description>
         Keycloak SSO
@@ -40,6 +34,10 @@
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
         <maven.compiler.release>17</maven.compiler.release>
+
+        <!-- Build settings (previously inherited from jboss-parent) -->
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
         <project.version.npm>999.0.0-SNAPSHOT</project.version.npm>
 
@@ -191,6 +189,7 @@
 
         <!-- Maven Plugins -->
         <maven.plugins.version>3.13.1</maven.plugins.version>
+        <version.enforcer.plugin>3.4.1</version.enforcer.plugin>
         <replacer.plugin.version>1.4.1</replacer.plugin.version>
         <jboss.as.plugin.version>7.5.Final</jboss.as.plugin.version>
         <jmeter.plugin.version>1.9.0</jmeter.plugin.version>
