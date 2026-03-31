@@ -116,7 +116,7 @@ jobs:
           declare -A PARAMS
           PARAMS["slow"]="-Dkc.quarkus.tests.groups=slow"
           PARAMS["fast"]='-Dkc.quarkus.tests.groups=!slow'
-          
+
           eval $(minikube -p minikube docker-env)
           ./mvnw install -Poperator -pl :keycloak-operator -am \
               -Dquarkus.container-image.build=true \
@@ -126,6 +126,15 @@ jobs:
               -Dtest.operator.custom.image=custom-keycloak:${{ env.version_remote }} \
               -Dtest.operator.client-controllers=true \
               --no-transfer-progress -Dtest.operator.deployment=remote ${PARAMS["${{ matrix.suite }}"]}
+
+      - name: Upload operator pod logs
+        if: failure()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
+        with:
+          name: operator-pod-logs-${{ matrix.suite }}
+          path: |
+            operator/target/operator-test-results/pod-logs/
+            operator/target/surefire-reports/
 
   test-olm:
     name: Test OLM installation
