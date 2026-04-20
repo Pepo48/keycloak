@@ -1,10 +1,8 @@
 package org.keycloak.tests.admin.client.v2;
 
 import java.io.ByteArrayInputStream;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -23,11 +21,8 @@ import org.keycloak.representations.idm.authorization.Logic;
 import org.keycloak.representations.idm.authorization.ScopePermissionRepresentation;
 import org.keycloak.representations.idm.authorization.UserPolicyRepresentation;
 import org.keycloak.services.client.ClientServiceHelper;
-import org.keycloak.testframework.admin.AdminClientFactory;
 import org.keycloak.testframework.annotations.InjectAdminClient;
-import org.keycloak.testframework.annotations.InjectAdminClientFactory;
 import org.keycloak.testframework.annotations.InjectClient;
-import org.keycloak.testframework.annotations.InjectHttpClient;
 import org.keycloak.testframework.annotations.InjectRealm;
 import org.keycloak.testframework.annotations.KeycloakIntegrationTest;
 import org.keycloak.testframework.realm.ManagedClient;
@@ -37,10 +32,6 @@ import org.keycloak.testframework.realm.RealmConfigBuilder;
 import org.keycloak.testframework.server.KeycloakServerConfig;
 import org.keycloak.testframework.server.KeycloakServerConfigBuilder;
 
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.util.EntityUtils;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -64,14 +55,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
     private static final String FGAP_USER_ID = "00000000000000000000";
 
-    @InjectHttpClient
-    CloseableHttpClient client;
-
     @InjectRealm(config = AuthorizationRealmConfig.class)
     ManagedRealm testRealm;
-
-    @InjectAdminClientFactory
-    AdminClientFactory adminClientFactory;
 
     @InjectClient(attachTo = Constants.ADMIN_PERMISSIONS_CLIENT_ID)
     ManagedClient adminPermissionClient;
@@ -115,17 +100,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
     @Override
     public String getRealmName() {
         return testRealm.getName();
-    }
-
-    private static final Map<String, Keycloak> adminClients = new HashMap<>();
-
-    @BeforeEach
-    public void setupClients() {
-        if (adminClients.isEmpty()) {
-            for (String currentUser : CURRENT_USERS) {
-                adminClients.put(currentUser, createAdminClient(currentUser));
-            }
-        }
     }
 
     /**
@@ -403,35 +377,17 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
      * Permissions: if realm == null return 404, if !isAdministrationRealm && !auth.realm.equals(realm) return 403
      */
     @Test
-    public void getRealmAdmin() throws Exception {
-        // Users authenticated to 'authztest' should be able to access 'authztest' realm admin resources
-        String ownRealmUrl = "http://localhost:8080/admin/realms/%s".formatted(getRealmName());
-        HttpGet request = new HttpGet(ownRealmUrl);
-
+    public void getRealmAdmin() {
         // should successfully access own realm (200 OK)
-        setAuthHeader(request, adminClients.get("realm-admin"));
-        try (var response = client.execute(request)) {
-            EntityUtils.consumeQuietly(response.getEntity());
-            assertThat(response.getStatusLine().getStatusCode(), is(200));
-        }
+        assertThat(realmAdminAdminClient.realm(getRealmName()).toRepresentation().getRealm(), is(getRealmName()));
 
-        // Test accessing non-existent realm - should return 404
-        String nonExistentRealmUrl = "http://localhost:8080/admin/realms/non-existent-realm";
-        request = new HttpGet(nonExistentRealmUrl);
-        setAuthHeader(request, adminClients.get("realm-admin"));
-        try (var response = client.execute(request)) {
-            assertThat(response.getStatusLine().getStatusCode(), is(404));
-        }
+        // non-existent realm (404)
+        assertThrows(NotFoundException.class,
+            () -> realmAdminAdminClient.realm("non-existent-realm").toRepresentation());
 
-        // When accessing a different realm from a non-administration realm, should return 403
-        // Note: This test validates that when authenticated to 'authztest' realm (which is not an admin realm),
-        // trying to access another realm's admin resource should be forbidden
-        String differentRealmUrl = "http://localhost:8080/admin/realms/master";
-        request = new HttpGet(differentRealmUrl);
-        setAuthHeader(request, adminClients.get("realm-admin"));
-        try (var response = client.execute(request)) {
-            assertThat(response.getStatusLine().getStatusCode(), is(403));
-        }
+        // accessing a different realm from a non-administration realm (403)
+        assertThrows(ForbiddenException.class,
+            () -> realmAdminAdminClient.realm("master").toRepresentation());
     }
 
     @Test
@@ -542,16 +498,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
         }
     }
 
-    private Keycloak createAdminClient(String username) {
-        return adminClientFactory.create()
-                .realm(getRealmName())
-                .clientId("test-client")
-                .clientSecret("test-secret")
-                .username(username)
-                .password("password")
-                .build();
-    }
-
     private void createFgapPermissionForClient(String clientId) throws Exception {
         createFgapPermissionForClient(clientId, FGAP_USER_ID, AdminPermissionsSchema.MANAGE, AdminPermissionsSchema.VIEW);
     }
@@ -600,8 +546,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
         }
     }
 
-    private static final Set<String> CURRENT_USERS = new HashSet<>();
-
     public static class AuthorizationRealmConfig implements RealmConfig {
         @Override
         public RealmConfigBuilder configure(RealmConfigBuilder realm) {
@@ -618,7 +562,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .emailVerified(true)
                     .password("password")
                     .clientRoles(Constants.REALM_MANAGEMENT_CLIENT_ID, AdminRoles.REALM_ADMIN);
-            CURRENT_USERS.add("realm-admin");
 
             // Role: view-clients
             realm.addUser("view-clients")
@@ -627,7 +570,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .emailVerified(true)
                     .password("password")
                     .clientRoles(Constants.REALM_MANAGEMENT_CLIENT_ID, AdminRoles.VIEW_CLIENTS);
-            CURRENT_USERS.add("view-clients");
 
             // Role: manage-clients
             realm.addUser("manage-clients")
@@ -636,7 +578,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .emailVerified(true)
                     .password("password")
                     .clientRoles(Constants.REALM_MANAGEMENT_CLIENT_ID, AdminRoles.MANAGE_CLIENTS);
-            CURRENT_USERS.add("manage-clients");
 
             // Role: query-clients
             realm.addUser("query-clients")
@@ -645,7 +586,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .emailVerified(true)
                     .password("password")
                     .clientRoles(Constants.REALM_MANAGEMENT_CLIENT_ID, AdminRoles.QUERY_CLIENTS);
-            CURRENT_USERS.add("query-clients");
 
             // NO role
             realm.addUser("no-access")
@@ -653,7 +593,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .email("noaccess@localhost")
                     .emailVerified(true)
                     .password("password");
-            CURRENT_USERS.add("no-access");
 
             // Role: manage-realm
             realm.addUser("manage-realm")
@@ -662,7 +601,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .emailVerified(true)
                     .password("password")
                     .clientRoles(Constants.REALM_MANAGEMENT_CLIENT_ID, AdminRoles.MANAGE_REALM);
-            CURRENT_USERS.add("manage-realm");
 
             // FGAP v2
             // fgap-user has QUERY_CLIENTS role but will be granted fine-grained permissions for specific clients
@@ -673,7 +611,6 @@ public class ClientApiV2AuthorizationTest extends AbstractClientApiV2Test {
                     .emailVerified(true)
                     .password("password")
                     .clientRoles(Constants.REALM_MANAGEMENT_CLIENT_ID, AdminRoles.QUERY_CLIENTS);
-            CURRENT_USERS.add("fgap-user");
 
             realm.addClient("fgap-denied-client")
                     .enabled(true);
