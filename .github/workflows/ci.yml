@@ -340,6 +340,8 @@ jobs:
 
       - name: Run new base tests
         run: ./mvnw package -f tests/pom.xml -Dtest=JDKTestSuite
+        env:
+          KC_FEATURES: http-client:v2
 
       - name: Run base tests
         run: |
@@ -386,6 +388,8 @@ jobs:
       - name: Run new base tests
         run: |
           ./mvnw package -f tests/pom.xml -Dtest=LoginV1TestSuite
+        env:
+          KC_FEATURES: http-client:v2
 
       - uses: ./.github/actions/upload-flaky-tests
         name: Upload flaky tests
@@ -416,6 +420,8 @@ jobs:
       - name: Run new base tests
         run: |
           ./mvnw package -f tests/pom.xml -Dtest=VolatileSessionsTestSuite
+        env:
+          KC_FEATURES: http-client:v2
 
       - uses: ./.github/actions/upload-flaky-tests
         name: Upload flaky tests
@@ -451,6 +457,8 @@ jobs:
         run: |
           CLASS_NAME=$(echo ${{ matrix.variant }} | sed 's/\([[:alpha:]]\)/\U\1/' | sed 's/-//')TestSuite
           ./mvnw package -f tests/pom.xml -Dtest=$CLASS_NAME
+        env:
+          KC_FEATURES: http-client:v2
 
       - uses: ./.github/actions/upload-flaky-tests
         name: Upload flaky tests
@@ -481,6 +489,8 @@ jobs:
       - name: Run new base tests without caches
         run: |
           ./mvnw package -f tests/pom.xml -Dtest=StatelessTestSuite
+        env:
+          KC_FEATURES: http-client:v2
 
       - uses: ./.github/actions/upload-flaky-tests
         name: Upload flaky tests
@@ -980,7 +990,7 @@ jobs:
           sudo insmod fake_fips.ko
 
       - name: Run base tests
-        run: docker run --rm --workdir /github/workspace -e "SUREFIRE_RERUN_FAILING_COUNT" -v "${{ github.workspace }}":"/github/workspace" -v "$HOME/.m2":"/root/.m2" registry.access.redhat.com/ubi9/ubi:latest .github/scripts/run-fips-it.sh ${{ matrix.mode }}
+        run: docker run --rm --workdir /github/workspace -e "SUREFIRE_RERUN_FAILING_COUNT" -e "KC_FEATURES=http-client:v2" -v "${{ github.workspace }}":"/github/workspace" -v "$HOME/.m2":"/root/.m2" registry.access.redhat.com/ubi9/ubi:latest .github/scripts/run-fips-it.sh ${{ matrix.mode }}
 
       - uses: ./.github/actions/upload-flaky-tests
         name: Upload flaky tests
@@ -1017,6 +1027,8 @@ jobs:
       - name: Run new Forms IT
         run: |
           ./mvnw package -f tests/pom.xml -Dkc.test.browser=${{ matrix.browser }}-headless -Dtest=FormsTestSuite
+        env:
+          KC_FEATURES: http-client:v2
 
       - uses: ./.github/actions/upload-flaky-tests
         name: Upload flaky tests
@@ -1200,6 +1212,8 @@ jobs:
 
       - name: Run tests
         run: ./mvnw package -f tests/pom.xml -Dtest=${{ matrix.suite }}
+        env:
+          KC_FEATURES: http-client:v2
 
   scim-integration-tests:
     name: SCIM IT
