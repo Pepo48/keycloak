@@ -35,13 +35,13 @@ import org.jboss.logging.Logger;
 public class VertxHttpClientProvider implements HttpClientProvider {
 
     private static final Logger logger = Logger.getLogger(VertxHttpClientProvider.class);
-    static final long DEFAULT_TIMEOUT_SECONDS = 30;
 
     private final WebClient webClient;
     private final HttpClient httpClient;
     private final CloseableHttpClient bridge;
     private final long maxConsumedResponseSize;
     private final long socketTimeoutMs;
+    private final long requestTimeoutMs;
     private final int maxRetries;
     private final long initialBackoffMillis;
     private final double backoffMultiplier;
@@ -50,13 +50,14 @@ public class VertxHttpClientProvider implements HttpClientProvider {
     private final ProxyMappings proxyMappings;
 
     VertxHttpClientProvider(WebClient webClient, HttpClient httpClient,
-                            long maxConsumedResponseSize, long socketTimeoutMs, int maxRetries,
-                            long initialBackoffMillis, double backoffMultiplier, boolean useJitter, double jitterFactor,
-                            ProxyMappings proxyMappings) {
+                            long maxConsumedResponseSize, long socketTimeoutMs, long requestTimeoutMs,
+                            int maxRetries, long initialBackoffMillis, double backoffMultiplier,
+                            boolean useJitter, double jitterFactor, ProxyMappings proxyMappings) {
         this.webClient = webClient;
         this.httpClient = httpClient;
         this.maxConsumedResponseSize = maxConsumedResponseSize;
         this.socketTimeoutMs = socketTimeoutMs;
+        this.requestTimeoutMs = requestTimeoutMs;
         this.maxRetries = maxRetries;
         this.initialBackoffMillis = initialBackoffMillis;
         this.backoffMultiplier = backoffMultiplier;
@@ -78,7 +79,7 @@ public class VertxHttpClientProvider implements HttpClientProvider {
             var req = webClient.postAbs(uri)
                     .as(BodyCodec.none())
                     .putHeader("Content-Type", "text/plain; charset=ISO-8859-1");
-            long timeout = getEffectiveTimeoutMs();
+            long timeout = getIdleTimeoutMs();
             if (timeout > 0) {
                 req.timeout(timeout);
             }
@@ -164,7 +165,7 @@ public class VertxHttpClientProvider implements HttpClientProvider {
             RequestOptions reqOptions = new RequestOptions()
                     .setMethod(HttpMethod.GET)
                     .setAbsoluteURI(uri)
-                    .setIdleTimeout((int) getEffectiveTimeoutMs());
+                    .setIdleTimeout((int) getIdleTimeoutMs());
             ProxyOptions proxy = resolveProxy(uri);
             if (proxy != null) {
                 reqOptions.setProxyOptions(proxy);
@@ -226,7 +227,7 @@ public class VertxHttpClientProvider implements HttpClientProvider {
         return executeWithRetry(() -> {
             CompletableFuture<byte[]> future = new CompletableFuture<>();
             var req = webClient.postAbs(uri);
-            long timeout = getEffectiveTimeoutMs();
+            long timeout = getIdleTimeoutMs();
             if (timeout > 0) {
                 req.timeout(timeout);
             }
@@ -304,13 +305,11 @@ public class VertxHttpClientProvider implements HttpClientProvider {
     }
 
     <T> T awaitResult(CompletableFuture<T> future) throws IOException {
-        return awaitResult(future, getEffectiveTimeoutMs());
+        return awaitResult(future, requestTimeoutMs);
     }
 
-    long getEffectiveTimeoutMs() {
-        return socketTimeoutMs > 0
-                ? Math.max(socketTimeoutMs, DEFAULT_TIMEOUT_SECONDS * 1000)
-                : 0;
+    long getIdleTimeoutMs() {
+        return socketTimeoutMs > 0 ? socketTimeoutMs : 0;
     }
 
     ProxyOptions resolveProxy(String uri) {
