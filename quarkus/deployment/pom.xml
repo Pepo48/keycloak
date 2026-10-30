@@ -80,14 +80,6 @@
             <exclusions>
                 <exclusion>
                     <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-devservices-common</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.quarkus</groupId>
-                    <artifactId>quarkus-devservices-deployment</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>io.quarkus</groupId>
                     <artifactId>quarkus-datasource-dev</artifactId>
                 </exclusion>
                 <exclusion>
@@ -191,6 +183,10 @@
             <artifactId>quarkus-micrometer-deployment</artifactId>
             <exclusions>
                 <exclusion>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-micrometer-dev</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.jboss.metadata</groupId>
                     <artifactId>jboss-metadata-web</artifactId>
                 </exclusion>
@@ -207,6 +203,12 @@
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-opentelemetry-deployment</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.quarkus</groupId>
+                    <artifactId>quarkus-opentelemetry-dev</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
@@ -215,7 +217,7 @@
 
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5-internal</artifactId>
+            <artifactId>quarkus-junit-internal</artifactId>
             <scope>test</scope>
             <exclusions>
                 <exclusion>
@@ -226,7 +228,7 @@
         </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-junit5-mockito</artifactId>
+            <artifactId>quarkus-junit-mockito</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

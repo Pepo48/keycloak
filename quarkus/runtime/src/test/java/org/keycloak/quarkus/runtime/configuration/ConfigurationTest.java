@@ -58,9 +58,34 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 public class ConfigurationTest extends AbstractConfigurationTest {
+
+    @Test
+    public void testTypedSpiConversion() {
+        putEnvVar("KC_SPI_CONVERSION__COUNT", "42");
+        putEnvVar("KC_SPI_CONVERSION__ACTIVE", "true");
+        Config.Scope scope = initConfig("conversion");
+        assertEquals(Integer.valueOf(42), scope.getInt("count"));
+        assertTrue(scope.getBoolean("active"));
+    }
+
+    @Test
+    public void testMissingTypedSpiValuesUseDefaults() {
+        Config.Scope scope = initConfig("conversion");
+        assertNull(scope.getInt("missing"));
+        assertEquals(Integer.valueOf(17), scope.getInt("missing", 17));
+        assertFalse(scope.getBoolean("missing", false));
+    }
+
+    @Test
+    public void testInvalidTypedSpiValues() {
+        putEnvVar("KC_SPI_CONVERSION__COUNT", "not-a-number");
+        Config.Scope scope = initConfig("conversion");
+        assertThrows(IllegalArgumentException.class, () -> scope.getInt("count"));
+    }
 
     @Test
     public void testCamelCase() {
@@ -100,10 +125,10 @@ public class ConfigurationTest extends AbstractConfigurationTest {
 
     @Test
     public void testKeycloakConfPlaceholder() {
-        assertEquals("info", createConfig().getRawValue("kc.log-level"));
+        assertEquals("info", createConfig().getConfigValue("kc.log-level").getValue());
         assertTrue(Configuration.getConfig().isPropertyPresent("quarkus.log.category.\"io.k8s\".level"));
         putEnvVar("SOME_LOG_LEVEL", "debug");
-        assertEquals("debug", createConfig().getRawValue("kc.log-level"));
+        assertEquals("debug", createConfig().getConfigValue("kc.log-level").getValue());
         SmallRyeConfig config = ConfigBuilderCustomizer.addInterceptors(ConfigUtils.emptyConfigBuilder().setAddDefaultSources(false).addDiscoveredSources()).build();
         assertNull(Expressions.withoutExpansion(() -> config.getConfigValue("kc.log-level")).getValue());
     }
@@ -1154,11 +1179,52 @@ public class ConfigurationTest extends AbstractConfigurationTest {
         assertEquals("false", config.getConfigValue("kc.spi-jgroups-mtls--default--activated").getValue());
         assertNull(config.getConfigValue("kc.spi-jgroups-mtls--default--enabled").getValue());
     }
+
+    @Test
+    public void testOpenApiEnabledMappings() {
+        var config = createConfigFromCliArguments("--features=client-admin-api:v2,openapi",
+                "--openapi-enabled=true", "--openapi-ui-enabled=true");
+        assertEquals("true", config.getConfigValue("quarkus.smallrye-openapi.enabled").getValue());
+        assertEquals("true", config.getConfigValue("quarkus.swagger-ui.enabled").getValue());
+    }
+
+    @Test
+    public void testOpenApiUiInactiveWithEndpointDisabled() {
+        var config = createConfigFromCliArguments("--features=client-admin-api:v2,openapi",
+                "--openapi-enabled=false", "--openapi-ui-enabled=false");
+        assertEquals("false", config.getConfigValue("quarkus.smallrye-openapi.enabled").getValue());
+        assertNull(config.getConfigValue("quarkus.swagger-ui.enabled").getValue());
+    }
+
+    @Test
+    public void testOpenApiUiDisabledWithEndpointEnabled() {
+        var config = createConfigFromCliArguments("--features=client-admin-api:v2,openapi",
+                "--openapi-enabled=true", "--openapi-ui-enabled=false");
+        assertEquals("true", config.getConfigValue("quarkus.smallrye-openapi.enabled").getValue());
+        assertEquals("false", config.getConfigValue("quarkus.swagger-ui.enabled").getValue());
+    }
     
     @Test
-    public void testSniNotSetViaConfig() {
-        // SNI is enabled via KeycloakHttpServerOptionsCustomizer, not via config property
+    public void testSniEnabledForDirectHttps() {
         var config = createConfigFromCliArguments("--https-certificate-file=\\some\\file");
+        assertEquals("true", config.getConfigValue(HttpPropertyMappers.QUARKUS_HTTPS_SNI).getValue());
+    }
+
+    @Test
+    public void testSniDisabledWithForwardedProxyHeaders() {
+        var config = createConfigFromCliArguments("--https-certificate-file=/cert.pem", "--proxy-headers=forwarded");
+        assertEquals("false", config.getConfigValue(HttpPropertyMappers.QUARKUS_HTTPS_SNI).getValue());
+    }
+
+    @Test
+    public void testSniDisabledWithXForwardedProxyHeaders() {
+        var config = createConfigFromCliArguments("--https-certificate-file=/cert.pem", "--proxy-headers=xforwarded");
+        assertEquals("false", config.getConfigValue(HttpPropertyMappers.QUARKUS_HTTPS_SNI).getValue());
+    }
+
+    @Test
+    public void testSniNotSetWithoutHttps() {
+        var config = createConfigFromCliArguments();
         assertNull(config.getConfigValue(HttpPropertyMappers.QUARKUS_HTTPS_SNI).getValue());
     }
 
